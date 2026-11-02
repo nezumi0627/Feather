@@ -27,15 +27,15 @@ ipa-unsigned:
 		-destination "generic/platform=iOS" \
 		-derivedDataPath $(TMP)/unsigned \
 		-skipPackagePluginValidation \
-		CONFIGURATION_BUILD_DIR="$(CURDIR)/_build/UnsignedProducts" \
 		CODE_SIGNING_ALLOWED=NO \
 		CODE_SIGNING_REQUIRED=NO \
 		PRODUCT_BUNDLE_IDENTIFIER="$$BUNDLE_ID" \
 		FEATHER_DISAMBIGUATOR=
-	test -d _build/UnsignedProducts/Feather.app
-	@! find _build/UnsignedProducts/Feather.app -name embedded.mobileprovision -print -quit | grep -q .
+	test -s _build/Applications/Feather.app/Info.plist
+	test -s _build/Applications/Feather.app/Feather
+	@! find _build/Applications/Feather.app -name embedded.mobileprovision -print -quit | grep -q .
 	mkdir -p _build/Payload packages
-	cp -R _build/UnsignedProducts/Feather.app _build/Payload/Feather.app
+	cp -R _build/Applications/Feather.app _build/Payload/Feather.app
 	ditto -c -k --sequesterRsrc --keepParent _build/Payload "$(UNSIGNED_IPA)"
 
 
