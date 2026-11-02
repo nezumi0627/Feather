@@ -1,0 +1,62 @@
+name: Personal unsigned IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_id:
+        description: Stable reverse-DNS identifier to keep across updates
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unsigned-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: xcode-27
+    steps:
+      - name: Check out source and submodules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+
+      - name: Validate bundle identifier
+        env:
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+
+          value = os.environ["BUNDLE_ID"]
+          if not re.fullmatch(r"[A-Za-z][A-Za-z0-9-]*(?:\.[A-Za-z0-9-]+)+", value):
+              print("bundle_id must be reverse-DNS segments containing letters, digits, or hyphens", file=sys.stderr)
+              sys.exit(1)
+          PY
+
+      - name: Build unsigned IPA
+        env:
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+        run: |
+          xcodebuild -version
+          make ipa-unsigned BUNDLE_ID="$BUNDLE_ID"
+          {
+            echo "commit=$(git rev-parse HEAD)"
+            echo "bundle_id=$BUNDLE_ID"
+            echo "$(xcodebuild -version | tr '\n' ' ')"
+          } > packages/build-info.txt
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: feather-unsigned-ipa-${{ github.run_number }}
+          path: |
+            packages/Feather-unsigned.ipa
+            packages/build-info.txt
+          if-no-files-found: error
+          retention-days: 14
